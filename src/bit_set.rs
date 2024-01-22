@@ -102,15 +102,20 @@ impl<const BYTES: usize> BitSet<BYTES> {
         Self { bytes }
     }
     const fn split_index(index: usize) -> (usize, usize) {
-        assert!(index <= BYTES * 8, "index out of bounds");
+        assert!(Self::is_in_bounds(index), "index out of bounds");
         (index % 8, index / 8)
+    }
+
+    /// checks if `index` is in bounds of this `BitSet`
+    pub const fn is_in_bounds(index: usize) -> bool {
+        index <= BYTES * 8
     }
 
     /// returns the current value of the bit at position `index`
     pub const fn get(&self, index: usize) -> bool {
         let (bit_index, byte_index) = Self::split_index(index);
 
-        self.bytes[byte_index] & (0x01 << bit_index) != 0
+        self.bytes[byte_index] & (1 << bit_index) != 0
     }
 
     /// sets the the bit at position `index` to `value`
@@ -120,9 +125,9 @@ impl<const BYTES: usize> BitSet<BYTES> {
         if USE_ALTERNATIVE {
             self.bytes[byte_index] ^= u8::from(value != self.get(index)) << bit_index;
         } else if value {
-            self.bytes[byte_index] |= 0x01 << bit_index;
+            self.bytes[byte_index] |= 1 << bit_index;
         } else {
-            self.bytes[byte_index] &= !(0x01 << bit_index);
+            self.bytes[byte_index] &= !(1 << bit_index);
         }
     }
 
