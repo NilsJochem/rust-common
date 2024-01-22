@@ -25,7 +25,8 @@
     clippy::return_self_not_must_use,
     clippy::missing_errors_doc,
     clippy::missing_panics_doc,
-    clippy::must_use_candidate
+    clippy::must_use_candidate,
+    clippy::impl_trait_in_params
 )]
 //! some common functionalitys
 
@@ -119,7 +120,7 @@ pub mod args {
                 None
             }
 
-            const DEFAULT_RETRY_MSG: &str = "couldn't parse that, please try again: ";
+            const DEFAULT_RETRY_MSG: &'static str = "couldn't parse that, please try again: ";
             /// read userinput as a String
             pub fn read(msg: impl AsRef<str>, default: Option<String>) -> String {
                 Self::inner_read(
@@ -381,3 +382,6 @@ pub mod args {
         }
     }
 }
+
+/// a wrapper to packed bits
+pub mod bit_set;
