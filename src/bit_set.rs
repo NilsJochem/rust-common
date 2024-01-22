@@ -22,9 +22,6 @@ impl<const N: usize> BitSet<N> {
     }
     #[inline]
     fn fmt_bytes(&self, f: &mut std::fmt::Formatter<'_>, radix_id: char) -> std::fmt::Result {
-        #[cfg(target_endian = "big")]
-        let iter = self.bytes.iter();
-        #[cfg(not(target_endian = "big"))]
         let iter = self.bytes.iter().rev();
         for &byte in iter {
             match radix_id {
@@ -75,12 +72,12 @@ macro_rules! from_uint {
     ($bytes: expr, $int: ident) => {
         impl From<$int> for BitSet<$bytes> {
             fn from(value: $int) -> Self {
-                Self::new(value.to_ne_bytes())
+                Self::new(value.to_le_bytes())
             }
         }
         impl From<BitSet<$bytes>> for $int {
             fn from(value: BitSet<$bytes>) -> Self {
-                Self::from_ne_bytes(value.bytes)
+                Self::from_le_bytes(value.bytes)
             }
         }
     };
@@ -100,29 +97,13 @@ impl<const BYTES: usize> Default for BitSet<BYTES> {
 }
 
 impl<const BYTES: usize> BitSet<BYTES> {
-    // /// Creates a new instance from little endian bytes
-    // pub const fn from_le_bytes(mut bytes: [u8; BYTES]) -> Self {
-    //     #[cfg(target_endian = "big")]
-    //     bytes.reverse();
-    //     Self::new(bytes)
-    // }
-    // /// Creates a new instance from big endian bytes
-    // pub const fn from_be_bytes(mut bytes: [u8; BYTES]) -> Self {
-    //     #[cfg(not(target_endian = "big"))]
-    //     bytes.reverse();
-    //     Self::new(bytes)
-    // }
-    const fn new(bytes: [u8; BYTES]) -> Self {
+    /// creates a new bitset from little endian bytes
+    pub const fn new(bytes: [u8; BYTES]) -> Self {
         Self { bytes }
     }
     const fn split_index(index: usize) -> (usize, usize) {
         assert!(index <= BYTES * 8, "index out of bounds");
-
-        if cfg!(target_endian = "big") {
-            (index % 8, BYTES - (index / 8))
-        } else {
-            (index % 8, index / 8)
-        }
+        (index % 8, index / 8)
     }
 
     /// returns the current value of the bit at position `index`
