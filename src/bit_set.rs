@@ -1,5 +1,14 @@
 use itertools::Itertools;
 
+macro_rules! const_for {
+    ($var: ident, $max: expr, $block: block) => {
+        let mut $var = 0;
+        while $var < $max {
+            $block
+            $var += 1;
+        }
+    };
+}
 /// Holds packed bits and manages access to them
 ///
 /// From<uint> will index lowest to highest bit
@@ -101,11 +110,11 @@ impl<const BYTES: usize> BitSet<BYTES> {
     pub const fn new(bytes: [u8; BYTES]) -> Self {
         Self { bytes }
     }
+
     const fn split_index(index: usize) -> (usize, usize) {
         assert!(Self::is_in_bounds(index), "index out of bounds");
         (index % 8, index / 8)
     }
-
     /// checks if `index` is in bounds of this `BitSet`
     pub const fn is_in_bounds(index: usize) -> bool {
         index <= BYTES * 8
@@ -114,10 +123,14 @@ impl<const BYTES: usize> BitSet<BYTES> {
     /// returns the current value of the bit at position `index`
     pub const fn get(&self, index: usize) -> bool {
         let (bit_index, byte_index) = Self::split_index(index);
-
         self.bytes[byte_index] & (1 << bit_index) != 0
     }
 
+    /// flips the the bit at position `index`
+    pub fn flip(&mut self, index: usize) {
+        let (bit_index, byte_index) = Self::split_index(index);
+        self.bytes[byte_index] ^= 1 << bit_index;
+    }
     /// sets the the bit at position `index` to `value`
     pub fn set(&mut self, index: usize, value: bool) {
         const USE_ALTERNATIVE: bool = true;
@@ -131,63 +144,57 @@ impl<const BYTES: usize> BitSet<BYTES> {
         }
     }
 
-    /// flips the the bit at position `index`
-    pub fn flip(&mut self, index: usize) {
-        let (bit_index, byte_index) = Self::split_index(index);
-        self.bytes[byte_index] ^= 1 << bit_index;
-    }
-
     /// counts the number of set bits
     pub const fn count(&self) -> usize {
         let mut count = 0;
-        let mut i = 0;
-        while i < BYTES {
+        const_for!(i, BYTES, {
             count += self.bytes[i].count_ones() as usize;
-            i += 1;
-        }
+        });
         count
+    }
+    /// are all bits set
+    pub const fn all(&self) -> bool {
+        const_for!(i, BYTES, {
+            if self.bytes[i] == 0xFF {
+                return false;
+            }
+        });
+        true
     }
     /// is any bit set
     pub const fn any(&self) -> bool {
-        let mut i = 0;
-        while i < BYTES {
+        const_for!(i, BYTES, {
             if self.bytes[i] > 0x00 {
                 return true;
             }
-            i += 1;
-        }
+        });
         false
     }
     /// is no bit set
     pub const fn none(&self) -> bool {
         !self.any()
     }
-    /// are all bits set
-    pub const fn all(&self) -> bool {
-        let mut i = 0;
-        while i < BYTES {
-            if self.bytes[i] == 0xFF {
-                return false;
-            }
-            i += 1;
-        }
-        true
-    }
-
-    /// calculates the union between `self` and `other`
-    pub const fn union(&self, other: &Self) -> Self {
-        let mut data = [0u8; BYTES];
-        let mut i = 0;
-        while i < BYTES {
-            data[i] = self.bytes[i] | other.bytes[i];
-            i += 1;
-        }
-        Self::new(data)
-    }
 
     /// sets all bits to false
     pub fn clear(&mut self) {
         self.bytes = [0; BYTES];
+    }
+
+    /// calculates the union between `self` and `other`
+    pub const fn union(&self, other: &Self) -> Self {
+        let mut data = self.bytes;
+        const_for!(i, BYTES, {
+            data[i] |= other.bytes[i];
+        });
+        Self::new(data)
+    }
+    /// calculates the intersection between `self` and `other`
+    pub const fn intersection(&self, other: &Self) -> Self {
+        let mut data = self.bytes;
+        const_for!(i, BYTES, {
+            data[i] &= other.bytes[i];
+        });
+        Self::new(data)
     }
 }
 
