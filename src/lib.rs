@@ -59,6 +59,12 @@ pub mod str {
     }
 }
 
+/// collections
+pub mod collections {
+    /// a wrapper to packed bits
+    pub mod bit_set;
+}
+
 /// common utilitys for argparsing
 pub mod args {
     /// common utilitys for input managing
@@ -382,6 +388,3 @@ pub mod args {
         }
     }
 }
-
-/// a wrapper to packed bits
-pub mod bit_set;
