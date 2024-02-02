@@ -65,6 +65,23 @@ pub mod collections {
     pub mod bit_set;
 }
 
+/// used as drop in replacement for assert, when an Error needs to be returned
+/// the Error will be lazily constructed
+///
+/// #[usage]
+/// require!{
+///     <condition>,
+///     <Error>
+/// }
+#[macro_export]
+macro_rules! require {
+    ($cond:expr, $err:expr) => {
+        if !$cond {
+            return Err($err);
+        }
+    };
+}
+
 /// common utilitys for argparsing
 pub mod args {
     /// common utilitys for input managing
