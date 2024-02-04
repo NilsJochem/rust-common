@@ -63,6 +63,55 @@ pub mod str {
 pub mod collections {
     /// a wrapper to packed bits
     pub mod bit_set;
+
+    enum DoubleArrayIndex {
+        First(usize),
+        Second(usize),
+    }
+    /// Array of size N + M
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct ArrayNPM<const N: usize, const M: usize, T> {
+        a: [T; N],
+        b: [T; M],
+    }
+    impl<const N: usize, const M: usize, T> ArrayNPM<N, M, T> {
+        /// populates this array with values produced by `cb`
+        pub fn from_fn(mut cb: impl FnMut(usize) -> T) -> Self {
+            Self {
+                a: std::array::from_fn(&mut cb),
+                b: std::array::from_fn(|it| cb(it + N)),
+            }
+        }
+
+        fn to_index(idx: usize) -> DoubleArrayIndex {
+            if idx < N {
+                DoubleArrayIndex::First(idx)
+            } else if idx < N + M {
+                DoubleArrayIndex::Second(idx - N)
+            } else {
+                panic!("{idx} is out of bounds {}", N + M)
+            }
+        }
+    }
+
+    impl<const N: usize, const M: usize, T> std::ops::Index<usize> for ArrayNPM<N, M, T> {
+        type Output = T;
+
+        fn index(&self, index: usize) -> &Self::Output {
+            match Self::to_index(index) {
+                DoubleArrayIndex::First(idx) => &self.a[idx],
+                DoubleArrayIndex::Second(idx) => &self.b[idx],
+            }
+        }
+    }
+    impl<const N: usize, const M: usize, T> std::ops::IndexMut<usize> for ArrayNPM<N, M, T> {
+        fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+            match Self::to_index(index) {
+                DoubleArrayIndex::First(idx) => &mut self.a[idx],
+                DoubleArrayIndex::Second(idx) => &mut self.b[idx],
+            }
+        }
+    }
 }
 
 /// used as drop in replacement for assert, when an Error needs to be returned
