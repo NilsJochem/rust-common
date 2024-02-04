@@ -2,9 +2,14 @@
 use log::{debug, trace};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use tokio::io::AsyncReadExt;
+use tokio::io::AsyncSeekExt;
+use tokio::io::AsyncWriteExt;
 
 use std::io::Error as IoError;
 use std::io::ErrorKind;
+
+use crate::extensions::iter::IteratorExt;
 
 /// An Error that can happen, when moving a File
 #[derive(Debug, Error)]
@@ -142,4 +147,69 @@ impl Drop for TmpFile {
     fn drop(&mut self) {
         self.remove().unwrap();
     }
+}
+
+/// assumes linux style \n and an extra newline at the end
+pub async fn truncate_last_lines<const N: usize>(
+    file: &mut tokio::fs::File,
+) -> std::io::Result<()> {
+    let new_line = u8::try_from('\n').unwrap();
+
+    let mut buf = [0u8; 64];
+    let mut offset = 0;
+    let mut last = crate::collections::ArrayNPM::<N, 1, Option<_>>::from_fn(|_| None);
+    let mut pointer = 0;
+
+    loop {
+        match file.read(&mut buf).await? {
+            0 => break,
+            bytes_read => {
+                for (i, _) in buf[0..bytes_read]
+                    .iter()
+                    .copied()
+                    .lzip(offset..(offset + bytes_read))
+                    .filter(|&(_, byte)| byte == new_line)
+                {
+                    last[pointer] = Some(i);
+                    pointer = (pointer + 1) % (N + 1);
+                }
+                offset += bytes_read;
+            }
+        }
+    }
+
+    if let Some(len) = last[pointer] {
+        file.set_len(len as u64 + 1).await
+    } else {
+        // need to leave an newline char at the end
+        file.seek(std::io::SeekFrom::Start(0)).await?;
+        file.set_len(0).await?;
+        file.write_all(b"\n").await?;
+        file.flush().await
+    }
+}
+#[tokio::test]
+async fn truncate_lines() {
+    async fn helper<const N: usize>() -> String {
+        let data = TmpFile::new_copy(
+            PathBuf::from(format!("./res/.truncate_{N}.txt")),
+            "./res/truncate.txt",
+        )
+        .unwrap();
+        let mut file = tokio::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(false)
+            .open(&data)
+            .await
+            .unwrap();
+        truncate_last_lines::<N>(&mut file).await.unwrap();
+
+        tokio::fs::read_to_string(&data).await.unwrap()
+    }
+    assert_eq!("line 1\nline 2\nline 3\n", helper::<0>().await);
+    assert_eq!("line 1\nline 2\n", helper::<1>().await);
+    assert_eq!("line 1\n", helper::<2>().await);
+    assert_eq!("\n", helper::<3>().await);
+    assert_eq!("\n", helper::<4>().await);
 }
