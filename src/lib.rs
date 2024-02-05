@@ -351,19 +351,19 @@ pub mod args {
             /// takes a list of Strings for suggestions
             pub struct VecCompleter {
                 data: Vec<String>,
-                metric: Box<dyn StrMetric>,
+                metric: Box<dyn StrMetric + Send>,
             }
             impl VecCompleter {
                 #[must_use]
                 #[allow(missing_docs)]
-                pub fn new(data: Vec<String>, metric: impl StrMetric + 'static) -> Self {
+                pub fn new(data: Vec<String>, metric: impl StrMetric + Send + 'static) -> Self {
                     Self {
                         data,
                         metric: Box::new(metric),
                     }
                 }
                 #[allow(missing_docs)]
-                pub fn from_iter<Iter>(iter: Iter, metric: impl StrMetric + 'static) -> Self
+                pub fn from_iter<Iter>(iter: Iter, metric: impl StrMetric + Send + 'static) -> Self
                 where
                     Iter: IntoIterator,
                     Iter::Item: ToString,
