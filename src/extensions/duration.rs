@@ -11,6 +11,10 @@ pub trait Ext {
 
     /// retursn a displayable Version of Duration
     fn into_display(self) -> DurationDisplay;
+    /// returns the absolute difference between `self` and `other`
+    fn abs_diff(self, other: Duration) -> Duration;
+    /// returns if the distance between `self` and `other` is no less then `delta`
+    fn is_near_to(self, other: Duration, delta: Duration) -> bool;
 }
 
 impl Ext for Duration {
@@ -28,6 +32,19 @@ impl Ext for Duration {
     }
     fn into_display(self) -> DurationDisplay {
         DurationDisplay(self)
+    }
+
+    #[inline]
+    fn abs_diff(self, other: Duration) -> Duration {
+        if self < other {
+            other - self
+        } else {
+            self - other
+        }
+    }
+    #[inline]
+    fn is_near_to(self, other: Duration, delta: Duration) -> bool {
+        self.abs_diff(other) < delta
     }
 }
 
