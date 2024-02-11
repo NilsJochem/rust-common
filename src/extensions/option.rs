@@ -1,5 +1,33 @@
 use std::future::Future;
 
+/// extentions for Options<Type>
+pub trait Ext {
+    /// The type of value of the Option.
+    type Type;
+
+    /// Returns `true` if the option is a [`None`] or the value inside of it matches a predicate.
+    fn is_none_or(self, f: impl FnOnce(Self::Type) -> bool) -> bool;
+}
+
+impl<T> Ext for Option<T> {
+    type Type = T;
+
+    #[inline]
+    fn is_none_or(self, f: impl FnOnce(T) -> bool) -> bool {
+        match self {
+            None => true,
+            Some(x) => f(x),
+        }
+    }
+}
+
+#[test]
+fn is_none_or() {
+    assert_eq!(Some(2).is_none_or(|x| x > 1), true);
+    assert_eq!(Some(0).is_none_or(|x| x > 1), false);
+    assert_eq!(None::<usize>.is_none_or(|x| x > 1), true);
+}
+
 /// extentions for Options<Future<_>>
 #[async_trait::async_trait]
 pub trait FutureExt {
