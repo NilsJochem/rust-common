@@ -59,7 +59,6 @@ where
 }
 
 /// extentions for all Iterators over clonable Elements
-
 pub trait CloneIteratorExt: Iterator + Sized {
     /// cuts up the iterator in chunks of size `window_size`. The next Chunk starts `hop_lenght` after the last one started
     fn chunked(self, window_size: usize, hop_length: usize) -> ChunkedIterator<Self>;

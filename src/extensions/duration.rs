@@ -14,6 +14,7 @@ pub trait Ext {
     /// returns the absolute difference between `self` and `other`
     fn abs_diff(self, other: Duration) -> Duration;
     /// returns if the distance between `self` and `other` is no less then `delta`
+    #[allow(clippy::wrong_self_convention)]
     fn is_near_to(self, other: Duration, delta: Duration) -> bool;
 }
 

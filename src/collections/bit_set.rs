@@ -374,7 +374,7 @@ mod tests {
         assert_eq!(
             BitSet::<1>::from(0b1010_1111),
             BitSet::from(0b1010_1010).union(&BitSet::from(0b0000_1111))
-        )
+        );
     }
 
     #[test]
@@ -393,7 +393,7 @@ mod tests {
     fn debug() {
         assert_eq!(
             "Bitset(0x00000000fedcba9876543210)",
-            format!("{:?}", BitSet::from(0xfedcba9876543210u128))
+            format!("{:?}", BitSet::from(0xfedc_ba98_7654_3210u128))
         );
         assert_eq!(
             "Bitset(0b0000010110101111)",
@@ -402,11 +402,11 @@ mod tests {
 
         assert_eq!(
             "Bitset(00000000fedcba9876543210)",
-            format!("{:x}", BitSet::from(0xfedcba9876543210u128))
+            format!("{:x}", BitSet::from(0xfedc_ba98_7654_3210u128))
         );
         assert_eq!(
             "Bitset(00000000FEDCBA9876543210)",
-            format!("{:X}", BitSet::from(0xfedcba9876543210u128))
+            format!("{:X}", BitSet::from(0xfedc_ba98_7654_3210u128))
         );
         assert_eq!(
             "Bitset(0000010110101111)",
@@ -415,11 +415,11 @@ mod tests {
 
         assert_eq!(
             "Bitset(0x00000000fedcba9876543210)",
-            format!("{:#x}", BitSet::from(0xfedcba9876543210u128))
+            format!("{:#x}", BitSet::from(0xfedc_ba98_7654_3210u128))
         );
         assert_eq!(
             "Bitset(0X00000000FEDCBA9876543210)",
-            format!("{:#X}", BitSet::from(0xfedcba9876543210u128))
+            format!("{:#X}", BitSet::from(0xfedc_ba98_7654_3210u128))
         );
         assert_eq!(
             "Bitset(0b0000010110101111)",

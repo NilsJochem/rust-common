@@ -203,7 +203,10 @@ impl<'a> CapitalizedString<'a> {
                 let mut contains_lower = false;
                 let mut contains_upper = false;
 
-                let first = data.chars().next().unwrap();
+                let first = data
+                    .chars()
+                    .next()
+                    .unwrap_or_else(|| unreachable!("data can't be empty"));
                 let is_first_upper = first.is_uppercase();
                 if is_first_upper {
                     contains_upper = true;
@@ -420,7 +423,8 @@ mod tests {
         );
         assert_eq!(
             data,
-            CapitalizedString::from_words(data.iter().map(|it| it.to_owned()), None).words,
+            CapitalizedString::from_words(data.iter().map(std::borrow::ToOwned::to_owned), None)
+                .words,
             "failed with owned"
         );
     }

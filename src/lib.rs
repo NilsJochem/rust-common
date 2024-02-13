@@ -1,33 +1,3 @@
-#![warn(
-    clippy::nursery,
-    clippy::pedantic,
-    clippy::empty_structs_with_brackets,
-    clippy::format_push_string,
-    clippy::if_then_some_else_none,
-    clippy::impl_trait_in_params,
-    clippy::missing_assert_message,
-    clippy::multiple_inherent_impl,
-    clippy::non_ascii_literal,
-    clippy::self_named_module_files,
-    clippy::semicolon_inside_block,
-    clippy::separated_literal_suffix,
-    clippy::str_to_string,
-    clippy::string_to_string,
-    missing_docs,
-    unsafe_op_in_unsafe_fn
-)]
-#![allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_precision_loss,
-    clippy::cast_lossless,
-    clippy::cast_sign_loss,
-    clippy::single_match_else,
-    clippy::return_self_not_must_use,
-    clippy::missing_errors_doc,
-    clippy::missing_panics_doc,
-    clippy::must_use_candidate,
-    clippy::impl_trait_in_params
-)]
 //! some common functionalitys
 
 pub mod boo;
@@ -257,6 +227,9 @@ pub mod args {
             /// read userinput as a String.
             /// Starts with `initial`
             /// Uses `suggestor` for suggestions
+            ///
+            /// # Panics
+            /// unwraps undocumented Result of [`inquire::prompts::text::Text::prompt`]
             pub fn read_with_suggestion(
                 msg: impl AsRef<str>,
                 initial: Option<&str>,
@@ -284,9 +257,28 @@ pub mod args {
             pub type Replacement = inquire::autocompletion::Replacement;
             /// a wrapper around inquires Autocomplete, that doesn't have the Clone + 'static requirement
             pub trait Autocomplete: Debug {
-                /// relays to `inquire::Autocompleter`
+                /// List of input suggestions to be displayed to the user upon typing the
+                /// text input.
+                ///
+                /// If the user presses the autocompletion hotkey (`tab` as default) with
+                /// a suggestion highlighted, the user's text input will be replaced by the
+                /// content of the suggestion string.
+                #[allow(clippy::missing_errors_doc)]
                 fn get_suggestions(&mut self, input: &str) -> Result<Vec<String>, Error>;
-                /// relays to `inquire::Autocompleter`
+
+                /// Standalone autocompletion that can be implemented based solely on the user's
+                /// input.
+                ///
+                /// If the user presses the autocompletion hotkey (`tab` as default) and
+                /// there are no suggestions highlighted (1), this function will be called in an
+                /// attempt to autocomplete the user's input.
+                ///
+                /// If the returned value is of the `Some` variant, the text input will be replaced
+                /// by the content of the string.
+                ///
+                /// (1) This applies where either there are no suggestions at all, or there are
+                /// some displayed but the user hasn't highlighted any.
+                #[allow(clippy::missing_errors_doc)]
                 fn get_completion(
                     &mut self,
                     input: &str,

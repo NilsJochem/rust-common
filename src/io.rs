@@ -151,10 +151,13 @@ impl Drop for TmpFile {
 
 /// assumes linux style \n and an extra newline at the end
 /// leaves pointer at the end of the file
+///
+/// # Errors
+/// relays any Errors from io calls
 pub async fn truncate_last_lines<const N: usize>(
     file: &mut tokio::fs::File,
 ) -> std::io::Result<()> {
-    let new_line = u8::try_from('\n').unwrap();
+    const NEW_LINE: u8 = b"\n"[0];
 
     let mut buf = [0u8; 64];
     let mut offset = 0;
@@ -170,7 +173,7 @@ pub async fn truncate_last_lines<const N: usize>(
                     .iter()
                     .copied()
                     .lzip(offset..(offset + bytes_read))
-                    .filter(|&(_, byte)| byte == new_line)
+                    .filter(|&(_, byte)| byte == NEW_LINE)
                 {
                     last[pointer] = Some(i);
                     pointer = (pointer + 1) % (N + 1);
@@ -184,7 +187,7 @@ pub async fn truncate_last_lines<const N: usize>(
     file.seek(std::io::SeekFrom::Start(len)).await?; // todo remember original seek position and return (need clamp to len)
     file.set_len(len).await?;
 
-    if let None = last[pointer] {
+    if last[pointer].is_none() {
         // need to leave an newline char at the end
         file.write_all(b"\n").await?;
         file.flush().await?;

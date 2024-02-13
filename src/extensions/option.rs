@@ -6,6 +6,7 @@ pub trait Ext {
     type Type;
 
     /// Returns `true` if the option is a [`None`] or the value inside of it matches a predicate.
+    #[allow(clippy::wrong_self_convention)]
     fn is_none_or(self, f: impl FnOnce(Self::Type) -> bool) -> bool;
 }
 
@@ -23,9 +24,9 @@ impl<T> Ext for Option<T> {
 
 #[test]
 fn is_none_or() {
-    assert_eq!(Some(2).is_none_or(|x| x > 1), true);
-    assert_eq!(Some(0).is_none_or(|x| x > 1), false);
-    assert_eq!(None::<usize>.is_none_or(|x| x > 1), true);
+    assert!(Some(2).is_none_or(|x| x > 1));
+    assert!(!Some(0).is_none_or(|x| x > 1));
+    assert!(None::<usize>.is_none_or(|x| x > 1));
 }
 
 /// extentions for Options<Future<_>>
