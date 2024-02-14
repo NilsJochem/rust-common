@@ -44,6 +44,7 @@ impl Ext for Duration {
         }
     }
     #[inline]
+    #[allow(unstable_name_collisions)]
     fn is_near_to(self, other: Duration, delta: Duration) -> bool {
         self.abs_diff(other) < delta
     }
