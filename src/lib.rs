@@ -40,6 +40,7 @@ pub mod collections {
     }
     /// Array of size N + M
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[repr(C)]
     pub struct ArrayNPM<const N: usize, const M: usize, T> {
         a: [T; N],
         b: [T; M],
@@ -62,6 +63,30 @@ pub mod collections {
                 panic!("{idx} is out of bounds {}", N + M)
             }
         }
+        fn assert_slice() {
+            let size_t = std::mem::size_of::<T>();
+            assert_ne!(0, size_t, "can't work with zero sized Types");
+
+            assert_ne!(
+                None,
+                N.checked_add(M)
+                    .and_then(|len| len.checked_mul(size_t))
+                    .and_then(|len| isize::try_from(len).ok()),
+                "length would overflow pointer"
+            );
+        }
+        /// returns a slice representing `self`
+        pub fn as_slice(&mut self) -> &[T] {
+            Self::assert_slice();
+            // SAFETY: assert_slice checks for Zero Size of T and overflows of (N+M)*size_t
+            unsafe { std::slice::from_raw_parts(self.a.as_ptr(), N + M) }
+        }
+        /// returns a mutable slice representing `self`
+        pub fn as_mut_slice(&mut self) -> &mut [T] {
+            Self::assert_slice();
+            // SAFETY: assert_slice checks for Zero Size of T and overflows of (N+M)*size_t
+            unsafe { std::slice::from_raw_parts_mut(self.a.as_mut_ptr(), N + M) }
+        }
     }
 
     impl<const N: usize, const M: usize, T> std::ops::Index<usize> for ArrayNPM<N, M, T> {
@@ -80,6 +105,25 @@ pub mod collections {
                 DoubleArrayIndex::First(idx) => &mut self.a[idx],
                 DoubleArrayIndex::Second(idx) => &mut self.b[idx],
             }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::extensions::iter::IteratorExt;
+
+        use super::*;
+
+        #[test]
+        fn slice() {
+            let mut data = ArrayNPM::<3, 3, u8>::from_fn(|it| it as u8);
+
+            for (i, ele) in data.as_mut_slice().iter_mut().lzip(0..) {
+                assert_eq!(i, *ele);
+                *ele += 10;
+            }
+            assert_eq!([10, 11, 12], data.a, "failed to write to a");
+            assert_eq!([13, 14, 15], data.b, "failed to write to b");
         }
     }
 }
