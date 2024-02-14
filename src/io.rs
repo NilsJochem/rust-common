@@ -152,16 +152,37 @@ impl Drop for TmpFile {
 /// assumes linux style \n and an extra newline at the end
 /// leaves pointer at the end of the file
 ///
+/// does its buffer on the stack
+///
 /// # Errors
 /// relays any Errors from io calls
-pub async fn truncate_last_lines<const N: usize>(
+pub async fn truncate_const_last_lines<const N: usize>(
     file: &mut tokio::fs::File,
+) -> std::io::Result<()> {
+    let mut last = crate::collections::ArrayNPM::<N, 1, Option<_>>::from_fn(|_| None);
+    inner_truncate_last_lines(file, last.as_mut_slice()).await
+}
+
+/// assumes linux style \n and an extra newline at the end
+/// leaves pointer at the end of the file
+///
+/// does its buffer on the heap
+///
+/// # Errors
+/// relays any Errors from io calls
+pub async fn truncate_last_lines(file: &mut tokio::fs::File, n: usize) -> std::io::Result<()> {
+    let mut last = vec![None; n + 1];
+    inner_truncate_last_lines(file, &mut last).await
+}
+
+async fn inner_truncate_last_lines(
+    file: &mut tokio::fs::File,
+    last: &mut [Option<usize>],
 ) -> std::io::Result<()> {
     const NEW_LINE: u8 = b"\n"[0];
 
     let mut buf = [0u8; 64];
     let mut offset = 0;
-    let mut last = crate::collections::ArrayNPM::<N, 1, Option<_>>::from_fn(|_| None);
     let mut pointer = 0;
 
     file.seek(std::io::SeekFrom::Start(0)).await?;
@@ -176,7 +197,7 @@ pub async fn truncate_last_lines<const N: usize>(
                     .filter(|&(_, byte)| byte == NEW_LINE)
                 {
                     last[pointer] = Some(i);
-                    pointer = (pointer + 1) % (N + 1);
+                    pointer = (pointer + 1) % (last.len());
                 }
                 offset += bytes_read;
             }
@@ -194,11 +215,12 @@ pub async fn truncate_last_lines<const N: usize>(
     }
     Ok(())
 }
+
 #[tokio::test]
-async fn truncate_lines() {
+async fn truncate_const_lines() {
     async fn helper<const N: usize>() -> String {
         let data = TmpFile::new_copy(
-            PathBuf::from(format!("./res/.truncate_{N}.txt")),
+            PathBuf::from(format!("./res/.truncate_const_{N}.txt")),
             "./res/truncate.txt",
         )
         .unwrap();
@@ -209,7 +231,7 @@ async fn truncate_lines() {
             .open(&data)
             .await
             .unwrap();
-        truncate_last_lines::<N>(&mut file).await.unwrap();
+        truncate_const_last_lines::<N>(&mut file).await.unwrap();
 
         tokio::fs::read_to_string(&data).await.unwrap()
     }
@@ -218,4 +240,30 @@ async fn truncate_lines() {
     assert_eq!("line 1\n", helper::<2>().await);
     assert_eq!("\n", helper::<3>().await);
     assert_eq!("\n", helper::<4>().await);
+}
+
+#[tokio::test]
+async fn truncate_lines() {
+    async fn helper(n: usize) -> String {
+        let data = TmpFile::new_copy(
+            PathBuf::from(format!("./res/.truncate_{n}.txt")),
+            "./res/truncate.txt",
+        )
+        .unwrap();
+        let mut file = tokio::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(false)
+            .open(&data)
+            .await
+            .unwrap();
+        truncate_last_lines(&mut file, n).await.unwrap();
+
+        tokio::fs::read_to_string(&data).await.unwrap()
+    }
+    assert_eq!("line 1\nline 2\nline 3\n", helper(0).await);
+    assert_eq!("line 1\nline 2\n", helper(1).await);
+    assert_eq!("line 1\n", helper(2).await);
+    assert_eq!("\n", helper(3).await);
+    assert_eq!("\n", helper(4).await);
 }
