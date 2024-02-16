@@ -1,5 +1,7 @@
-//! some common functionalitys
+// SPDX-FileCopyrightText: 2024 Nils Jochem
+// SPDX-License-Identifier: MPL-2.0
 
+//! some common functionalitys
 pub mod boo;
 /// a collection for extionsion functions
 pub mod extensions {

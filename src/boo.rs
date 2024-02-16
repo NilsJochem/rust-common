@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Nils Jochem
+// SPDX-License-Identifier: MPL-2.0
+
 //! A module for Boo (Borrow or Owned)
 use std::{borrow::Borrow, ops::Deref};
 

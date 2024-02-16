@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Nils Jochem
+// SPDX-License-Identifier: MPL-2.0
+
 //! A module for io related Utilitys
 use log::{debug, trace};
 use std::path::{Path, PathBuf};

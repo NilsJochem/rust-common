@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Nils Jochem
+// SPDX-License-Identifier: MPL-2.0
+
 /// extentions for all Iterators
 pub trait IteratorExt: Iterator + Sized {
     /// creates an [`ExactSizeIterator`] from `self` with `size`

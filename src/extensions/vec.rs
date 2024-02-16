@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Nils Jochem
+// SPDX-License-Identifier: MPL-2.0
+
 /// extentions to push an Element and returning an reference
 pub trait PushReturn<Type> {
     /// pushes `t` and returns a reference to it
