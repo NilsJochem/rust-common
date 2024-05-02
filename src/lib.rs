@@ -78,7 +78,7 @@ pub mod collections {
             );
         }
         /// returns a slice representing `self`
-        pub fn as_slice(&mut self) -> &[T] {
+        pub fn as_slice(&self) -> &[T] {
             Self::assert_slice();
             // SAFETY: assert_slice checks for Zero Size of T and overflows of (N+M)*size_t
             unsafe { std::slice::from_raw_parts(self.a.as_ptr(), N + M) }
