@@ -321,6 +321,7 @@ impl<'a> From<&CapitalizedString<'a>> for Cow<'a, str> {
         )
     }
 }
+#[allow(clippy::to_string_trait_impl)]
 impl<'a> ToString for CapitalizedString<'a> {
     fn to_string(&self) -> String {
         Cow::from(self).into_owned()

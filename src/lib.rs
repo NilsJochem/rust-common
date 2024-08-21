@@ -35,7 +35,6 @@ pub mod str {
 pub mod collections {
     /// a wrapper to packed bits
     pub mod bit_set;
-
     enum DoubleArrayIndex {
         First(usize),
         Second(usize),

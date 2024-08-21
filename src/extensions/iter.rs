@@ -194,12 +194,16 @@ where
 #[allow(missing_docs)]
 pub struct ExactSizeWrapper<Iter: Iterator> {
     iter: Iter,
-    i: usize,
+    consumed: usize,
     size: usize,
 }
 impl<Iter: Iterator> ExactSizeWrapper<Iter> {
     const fn new(iter: Iter, size: usize) -> Self {
-        Self { iter, i: 0, size }
+        Self {
+            iter,
+            consumed: 0,
+            size,
+        }
     }
 }
 impl<Iter: Iterator> Iterator for ExactSizeWrapper<Iter> {
@@ -207,13 +211,20 @@ impl<Iter: Iterator> Iterator for ExactSizeWrapper<Iter> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let ret = self.iter.next();
-        self.i += ret.is_some() as usize;
+        self.consumed += ret.is_some() as usize;
         ret
     }
 }
 impl<Iter: Iterator> ExactSizeIterator for ExactSizeWrapper<Iter> {
     fn len(&self) -> usize {
-        self.size - self.i
+        self.size - self.consumed
+    }
+}
+impl<Iter: Iterator + DoubleEndedIterator> DoubleEndedIterator for ExactSizeWrapper<Iter> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let ret = self.iter.next_back();
+        self.consumed += ret.is_some() as usize;
+        ret
     }
 }
 
@@ -313,5 +324,24 @@ mod tests {
             State::End(3)
         ]
         .into_iter()));
+    }
+
+    #[test]
+    fn exact_size() {
+        let mut iter = (0..10).with_size(10);
+
+        assert_eq!(iter.len(), 10);
+
+        assert_eq!(iter.next(), Some(0));
+        assert_eq!(iter.len(), 9);
+        assert_eq!(iter.next_back(), Some(9));
+        assert_eq!(iter.len(), 8);
+
+        assert_eq!(iter.next(), Some(1));
+        assert_eq!(iter.len(), 7);
+        assert_eq!(iter.next_back(), Some(8));
+        assert_eq!(iter.len(), 6);
+
+        assert_eq!(iter.collect_vec(), (2..8).collect_vec());
     }
 }
