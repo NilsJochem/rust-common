@@ -3,7 +3,7 @@
 
 [package]
 name = "common"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 authors = ["Nils Jochem"]
 license = "MPL-2.0"
@@ -14,16 +14,23 @@ repository = "https://github.com/NilsJochem/rust-common"
 [dependencies]
 thiserror = "1.0"
 log = "0.4"
-tokio = { version = "1.29", features = ["full"] }
-futures = "0.3"
+tokio = { version = "1.29", features = ["full"], optional = true }
+futures = { version = "0.3", optional = true }
 itertools = "0.12"
 async-trait = "0.1"
 momo = "0.2"
-clap = { version = "4.3", features = ["derive"] }
-env_logger = "0.10"
-text_io = "0.1"
-inquire = "0.6"
+clap = { version = "4.3", features = ["derive"], optional = true }
+env_logger = { version = "0.10", optional = true }
+text_io = { version = "0.1", optional = true }
+inquire = { version = "0.6", optional = true }
+derive_more = { version = "1.0.0", features = ["from"], optional = true }
 
+[features]
+default = ["boo", "io", "args", "fut_iter"]
+boo = ["dep:derive_more"]
+io = ["dep:tokio"]
+args = ["dep:clap", "dep:text_io", "dep:inquire", "dep:env_logger"]
+fut_iter = ["dep:futures"]
 
 [lints]
 # base

@@ -148,6 +148,7 @@ macro_rules! require {
 
 /// common utilitys for argparsing
 pub mod args {
+    #![cfg(feature = "args")]
     /// common utilitys for input managing
     pub mod input {
         use clap::Args;

@@ -45,6 +45,7 @@ impl<Iter: Iterator> IteratorExt for Iter {
     }
 }
 /// extentions for all Iterators over [futures](core::future::Future)
+#[cfg(feature = "fut_iter")]
 pub trait FutIterExt: IntoIterator + Sized
 where
     Self::Item: core::future::Future,
@@ -52,6 +53,7 @@ where
     /// joins all futures in `self`
     fn join_all(self) -> futures::future::JoinAll<<Self as IntoIterator>::Item>;
 }
+#[cfg(feature = "fut_iter")]
 impl<Iter: IntoIterator + Sized> FutIterExt for Iter
 where
     Iter::Item: core::future::Future,
