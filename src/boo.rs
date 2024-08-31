@@ -18,18 +18,21 @@ pub enum Boo<'b, T> {
 }
 
 // into Boo
-impl<'b, T> From<Mob<'b, T>> for Boo<'b, T> {
-    fn from(val: Mob<'b, T>) -> Self {
-        match val {
-            Mob::BorrowedMut(t) => Self::Borrowed(t),
-            Mob::Borrowed(t) => Self::Borrowed(t),
-            Mob::Owned(t) => Self::Owned(t),
-        }
+impl<'b, T> TryFrom<Moo<'b, T>> for Boo<'b, T> {
+    type Error = &'b mut T;
+    fn try_from(val: Moo<'b, T>) -> Result<Self, Self::Error> {
+        Boo::try_from(Mob::from(val))
     }
 }
-impl<'b, T> From<Moo<'b, T>> for Boo<'b, T> {
-    fn from(val: Moo<'b, T>) -> Self {
-        Boo::from(Mob::from(val))
+impl<'b, T> TryFrom<Mob<'b, T>> for Boo<'b, T> {
+    type Error = &'b mut T;
+
+    fn try_from(value: Mob<'b, T>) -> Result<Self, Self::Error> {
+        match value {
+            Mob::BorrowedMut(t) => Err(t),
+            Mob::Borrowed(t) => Ok(Self::Borrowed(t)),
+            Mob::Owned(t) => Ok(Self::Owned(t)),
+        }
     }
 }
 
@@ -60,6 +63,10 @@ impl<'b, T> Deref for Boo<'b, T> {
 }
 
 impl<'b, T> Boo<'b, T> {
+    /// creates a new instance while coercing mutable references to normal refs
+    pub fn from_coerce_ref(value: impl TryInto<Self, Error = &'b mut T>) -> Self {
+        value.try_into().unwrap_or_else(|err| Self::Borrowed(err))
+    }
     /// gives an owned instance of `T` by using `deref` on the held reference
     pub fn into_owned(self, deref: impl FnOnce(&'b T) -> T) -> T {
         match self {
@@ -215,14 +222,24 @@ pub enum Moo<'b, T> {
     BorrowedMut(&'b mut T),
 }
 
-impl<'b, T: Clone> From<Mob<'b, T>> for Moo<'b, T> {
-    fn from(value: Mob<'b, T>) -> Self {
+impl<'b, T> TryFrom<Boo<'b, T>> for Moo<'b, T> {
+    type Error = &'b T;
+    fn try_from(val: Boo<'b, T>) -> Result<Self, Self::Error> {
+        Moo::try_from(Mob::from(val))
+    }
+}
+impl<'b, T> TryFrom<Mob<'b, T>> for Moo<'b, T> {
+    type Error = &'b T;
+
+    fn try_from(value: Mob<'b, T>) -> Result<Self, Self::Error> {
         match value {
-            Mob::BorrowedMut(value) => Moo::BorrowedMut(value),
-            value => Moo::Owned(value.cloned()),
+            Mob::BorrowedMut(t) => Ok(Self::BorrowedMut(t)),
+            Mob::Borrowed(t) => Err(t),
+            Mob::Owned(t) => Ok(Self::Owned(t)),
         }
     }
 }
+
 impl<'b, T> From<Moo<'b, T>> for Option<&'b mut T> {
     fn from(val: Moo<'b, T>) -> Self {
         val.try_into_mut()
@@ -273,6 +290,16 @@ impl<'b, T> Moo<'b, T> {
                 Self::BorrowedMut(mut_ref)
             }
             None => Self::Owned(value),
+        }
+    }
+    /// creates a new insatance from `value` with the potetionally borrowed value cloned
+    pub fn from_mob_cloned(value: Mob<'b, T>) -> Self
+    where
+        T: Clone,
+    {
+        match value {
+            Mob::BorrowedMut(value) => Moo::BorrowedMut(value),
+            value => Moo::Owned(value.cloned()),
         }
     }
 
