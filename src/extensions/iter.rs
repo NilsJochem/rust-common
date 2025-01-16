@@ -15,6 +15,15 @@ pub trait IteratorExt: Iterator + Sized {
     /// checks if `self` is ordered by `ord`
     #[allow(clippy::wrong_self_convention)]
     fn is_sorted_by(self, ord: impl FnMut(&Self::Item, &Self::Item) -> std::cmp::Ordering) -> bool;
+
+    /// collects element one by one into an accumulator, but returns instantly when `transform` returns an error
+    /// # Errors
+    /// returns any error that `transform` returns
+    fn reduce_early_return<ACC, E>(
+        self,
+        initial: ACC,
+        transform: impl FnMut(ACC, Self::Item) -> Result<ACC, E>,
+    ) -> Result<ACC, E>;
 }
 impl<Iter: Iterator> IteratorExt for Iter {
     fn with_size(self, size: usize) -> ExactSizeWrapper<Self> {
@@ -43,7 +52,22 @@ impl<Iter: Iterator> IteratorExt for Iter {
         }
         true
     }
+    fn reduce_early_return<ACC, E>(
+        self,
+        initial: ACC,
+        mut reduce: impl FnMut(ACC, Self::Item) -> Result<ACC, E>,
+    ) -> Result<ACC, E> {
+        let mut acc = initial;
+        for next in self {
+            acc = match reduce(acc, next) {
+                Result::Ok(value) => value,
+                Result::Err(e) => return Err(e),
+            }
+        }
+        Ok(acc)
+    }
 }
+
 /// extentions for all Iterators over [futures](core::future::Future)
 #[cfg(feature = "fut_iter")]
 pub trait FutIterExt: IntoIterator + Sized
@@ -345,5 +369,34 @@ mod tests {
         assert_eq!(iter.len(), 6);
 
         assert_eq!(iter.collect_vec(), (2..8).collect_vec());
+    }
+
+    #[test]
+    fn reduce_early_return() {
+        assert_eq!(
+            vec![1, 2, 3, 0, 4, 5]
+                .into_iter()
+                .inspect(|it| assert!(*it < 4, "didn't early return"))
+                .reduce_early_return(1, |acc, it| {
+                    if it != 0 {
+                        Ok(acc * it)
+                    } else {
+                        Err(0)
+                    }
+                }),
+            Err(0)
+        );
+        assert_eq!(
+            vec![1, 2, 3, 4, 5]
+                .into_iter()
+                .reduce_early_return(1, |acc, it| {
+                    if it != 0 {
+                        Ok(acc * it)
+                    } else {
+                        Err(0)
+                    }
+                }),
+            Ok(120)
+        );
     }
 }
